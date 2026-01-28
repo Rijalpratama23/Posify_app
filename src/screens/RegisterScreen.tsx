@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
-import { RegisterScreen } from '../screens/RegisterScreen'
 
 const COLORS = {
   background: '#DDE1F5',
@@ -17,7 +16,7 @@ const COLORS = {
   facebook: '#1877F2',
 };
 
-const LoginScreens = ({ navigation }: any) => {
+const RegisterScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -256,4 +255,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreens;
+export default RegisterScreen;
