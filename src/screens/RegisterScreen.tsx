@@ -1,7 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert, // TAMBAHAN: Untuk pesan pop-up
+  ActivityIndicator, // TAMBAHAN: Untuk loading muter-muter
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
+
+// --- 1. IMPORT FIREBASE ---
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../config/firebase'; // Pastikan path ini benar sesuai struktur foldermu
 
 const COLORS = {
   background: '#DDE1F5',
@@ -17,25 +33,81 @@ const COLORS = {
 };
 
 const RegisterScreen = ({ navigation }: any) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // --- 2. STATE LOADING ---
+  const [isLoading, setIsLoading] = useState(false);
+
+  // --- 3. FUNGSI REGISTER KE FIREBASE ---
+  const handleRegister = async () => {
+    // Validasi Input Kosong
+    if (!name || !email || !password) {
+      Alert.alert('Gagal', 'Mohon isi Nama, Email, dan Password.');
+      return;
+    }
+
+    // Validasi Terms
+    if (!agreeTerms) {
+      Alert.alert('Gagal', 'Anda harus menyetujui Syarat & Ketentuan.');
+      return;
+    }
+
+    setIsLoading(true); // Mulai Loading
+
+    try {
+      // A. Buat Akun di Firebase
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // B. Simpan Nama User (DisplayName)
+      await updateProfile(user, {
+        displayName: name,
+      });
+
+      console.log('Register Berhasil:', user.email);
+
+      // C. Beri Notifikasi & Pindah ke Home
+      Alert.alert('Sukses', 'Akun berhasil dibuat!', [{ text: 'OK', onPress: () => navigation.replace('Home') }]);
+    } catch (error: any) {
+      console.error(error);
+      let errorMessage = 'Terjadi kesalahan.';
+
+      // Cek Kode Error dari Firebase
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email sudah terdaftar!';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password terlalu lemah (min. 6 karakter).';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Format email tidak valid.';
+      }
+
+      Alert.alert('Registrasi Gagal', errorMessage);
+    } finally {
+      setIsLoading(false); // Stop Loading
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        {/* --- PERUBAHAN DI SINI --- */}
-        {/* 1. Logo diletakkan DI LUAR ScrollView agar tetap diam di atas */}
         <View style={styles.headerContainer}>
+          {/* Pastikan path logo benar */}
           <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
-        {/* 2. ScrollView hanya membungkus Card Putih */}
         <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.card}>
-            <Text style={styles.title}>Welcome to</Text>
-            <Text style={styles.subTitle}>Posify login now!</Text>
+            <Text style={styles.title}>Create an account</Text>
+
+            {/* Input Name */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Name</Text>
+              <TextInput style={styles.input} placeholder="John Doe" placeholderTextColor="#9CA3AF" value={name} onChangeText={setName} />
+            </View>
 
             {/* Input Email */}
             <View style={styles.inputContainer}>
@@ -54,24 +126,26 @@ const RegisterScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* Remember Me & Forgot Password */}
-            <View style={styles.rowBetween}>
-              <TouchableOpacity style={styles.rememberRow} onPress={() => setRememberMe(!rememberMe)}>
-                <MaterialCommunityIcons name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={COLORS.textMain} />
-                <Text style={styles.rememberText}>Remember Me</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity>
-                <Text style={styles.forgotText}>Forgot Password?</Text>
+            {/* Checkbox Terms */}
+            <View style={styles.rowStart}>
+              <TouchableOpacity style={styles.rowItem} onPress={() => setAgreeTerms(!agreeTerms)}>
+                <MaterialCommunityIcons name={agreeTerms ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={COLORS.textMain} />
+                <Text style={styles.termsText}>
+                  I agree to the <Text style={{ color: COLORS.accent }}>Term of Service</Text>
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Tombol Login */}
-            <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={() => navigation.replace('Home')}>
-              <Text style={styles.loginButtonText}>Login</Text>
+            {/* --- 4. TOMBOL REGISTER YANG SUDAH DIUPDATE --- */}
+            <TouchableOpacity
+              style={styles.button}
+              activeOpacity={0.8}
+              onPress={handleRegister} // Memanggil fungsi handleRegister
+              disabled={isLoading} // Tombol mati saat loading
+            >
+              {isLoading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.buttonText}>Register</Text>}
             </TouchableOpacity>
 
-            {/* Divider "Or" */}
             <View style={styles.orContainer}>
               <Text style={styles.orText}>Or</Text>
             </View>
@@ -81,21 +155,19 @@ const RegisterScreen = ({ navigation }: any) => {
               <TouchableOpacity style={styles.socialIcon}>
                 <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} style={{ width: 30, height: 30 }} />
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.socialIcon}>
                 <FontAwesome name="apple" size={32} color={COLORS.apple} />
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.socialIcon}>
                 <FontAwesome name="facebook" size={30} color={COLORS.facebook} />
               </TouchableOpacity>
             </View>
 
-            {/* Footer Sign Up */}
+            {/* Footer: Balik ke Login */}
             <View style={styles.footerContainer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={styles.signUpText}>Sign Up</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.linkText}>Login</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -112,19 +184,18 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center', // Agar card tetap di tengah jika konten sedikit
+    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 30, // Memberi ruang scroll di bawah
+    paddingBottom: 30,
   },
   headerContainer: {
     alignItems: 'center',
-    marginTop: 10, // Diatur agar pas di atas
+    marginTop: 10,
     marginBottom: 10,
-    zIndex: 1, // Memastikan logo di atas layer
   },
   logo: {
     width: 160,
-    height: 140, // Sedikit dikecilkan agar proporsional sebagai header fixed
+    height: 140,
     resizeMode: 'contain',
   },
   card: {
@@ -138,14 +209,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  // ... (Style di bawah ini TIDAK BERUBAH sama sekali) ...
   title: {
-    fontSize: 20,
-    color: '#333',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  subTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
@@ -182,28 +246,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  rowBetween: {
+  rowStart: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
     marginTop: 5,
   },
-  rememberRow: {
+  rowItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  rememberText: {
+  termsText: {
     marginLeft: 8,
     color: '#333',
     fontSize: 13,
   },
-  forgotText: {
-    color: '#577CFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  loginButton: {
+  button: {
     backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 16,
@@ -215,7 +273,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
   },
-  loginButtonText: {
+  buttonText: {
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
@@ -248,7 +306,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 14,
   },
-  signUpText: {
+  linkText: {
     color: '#1A237E',
     fontWeight: 'bold',
     fontSize: 14,

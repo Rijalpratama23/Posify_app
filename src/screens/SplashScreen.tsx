@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   // Sub-judul (Tagline)
   subtitle: {
     fontSize: 16,
-    fontWeight: 'semibold', // Semi-bold
+    fontWeight: 500, // Semi-bold
     color: COLORS.textSub,
     textAlign: 'center',
     marginBottom: 20,

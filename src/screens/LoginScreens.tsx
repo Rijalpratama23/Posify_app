@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert, // TAMBAHAN: Untuk Pop-up
+  ActivityIndicator, // TAMBAHAN: Untuk Loading
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
-import { RegisterScreen } from '../screens/RegisterScreen'
+
+// --- 1. IMPORT FIREBASE AUTH ---
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 const COLORS = {
   background: '#DDE1F5',
@@ -23,16 +38,53 @@ const LoginScreens = ({ navigation }: any) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  // State untuk Loading
+  const [isLoading, setIsLoading] = useState(false);
+
+  // --- 2. LOGIKA LOGIN ---
+  const handleLogin = async () => {
+    // A. Cek apakah input kosong?
+    if (!email || !password) {
+      Alert.alert('Gagal', 'Email dan Password tidak boleh kosong!');
+      return;
+    }
+
+    setIsLoading(true); // Mulai Loading
+
+    try {
+      // B. Coba Login ke Firebase
+      await signInWithEmailAndPassword(auth, email, password);
+
+      console.log('Login Berhasil!');
+      // Jika berhasil, langsung masuk Home tanpa Alert (UX lebih cepat)
+      navigation.replace('Home');
+    } catch (error: any) {
+      console.error('Login Error: ', error.code);
+      let errorMessage = 'Terjadi kesalahan saat login.';
+
+      // C. Menangani Error Spesifik
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = 'Email atau Password salah. Silakan cek kembali.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Format email tidak valid.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Terlalu banyak percobaan gagal. Coba lagi nanti.';
+      }
+
+      // Tampilkan Pesan Error
+      Alert.alert('Login Gagal', errorMessage);
+    } finally {
+      setIsLoading(false); // Stop Loading
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        {/* --- PERUBAHAN DI SINI --- */}
-        {/* 1. Logo diletakkan DI LUAR ScrollView agar tetap diam di atas */}
         <View style={styles.headerContainer}>
           <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
-        {/* 2. ScrollView hanya membungkus Card Putih */}
         <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.card}>
             <Text style={styles.title}>Welcome to</Text>
@@ -67,12 +119,16 @@ const LoginScreens = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
 
-            {/* Tombol Login */}
-            <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={() => navigation.replace('Home')}>
-              <Text style={styles.loginButtonText}>Login</Text>
+            {/* --- 3. TOMBOL LOGIN UPDATE --- */}
+            <TouchableOpacity
+              style={styles.loginButton}
+              activeOpacity={0.8}
+              onPress={handleLogin} // Panggil fungsi login
+              disabled={isLoading} // Matikan tombol saat loading
+            >
+              {isLoading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.loginButtonText}>Login</Text>}
             </TouchableOpacity>
 
-            {/* Divider "Or" */}
             <View style={styles.orContainer}>
               <Text style={styles.orText}>Or</Text>
             </View>
@@ -82,11 +138,9 @@ const LoginScreens = ({ navigation }: any) => {
               <TouchableOpacity style={styles.socialIcon}>
                 <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} style={{ width: 30, height: 30 }} />
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.socialIcon}>
                 <FontAwesome name="apple" size={32} color={COLORS.apple} />
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.socialIcon}>
                 <FontAwesome name="facebook" size={30} color={COLORS.facebook} />
               </TouchableOpacity>
@@ -113,19 +167,19 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center', // Agar card tetap di tengah jika konten sedikit
+    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 30, // Memberi ruang scroll di bawah
+    paddingBottom: 30,
   },
   headerContainer: {
     alignItems: 'center',
-    marginTop: 10, // Diatur agar pas di atas
+    marginTop: 10,
     marginBottom: 10,
-    zIndex: 1, // Memastikan logo di atas layer
+    zIndex: 1,
   },
   logo: {
     width: 160,
-    height: 140, // Sedikit dikecilkan agar proporsional sebagai header fixed
+    height: 140,
     resizeMode: 'contain',
   },
   card: {
@@ -139,7 +193,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  // ... (Style di bawah ini TIDAK BERUBAH sama sekali) ...
   title: {
     fontSize: 20,
     color: '#333',
