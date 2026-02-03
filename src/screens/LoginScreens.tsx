@@ -1,21 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert, // TAMBAHAN: Untuk Pop-up
-  ActivityIndicator, // TAMBAHAN: Untuk Loading
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
-
-// --- 1. IMPORT FIREBASE AUTH ---
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -32,37 +18,32 @@ const COLORS = {
   facebook: '#1877F2',
 };
 
-const LoginScreens = ({ navigation }: any) => {
+const LoginScreens = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
-  // State untuk Loading
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- 2. LOGIKA LOGIN ---
   const handleLogin = async () => {
-    // A. Cek apakah input kosong?
     if (!email || !password) {
       Alert.alert('Gagal', 'Email dan Password tidak boleh kosong!');
       return;
     }
 
-    setIsLoading(true); // Mulai Loading
+    setIsLoading(true);
 
     try {
-      // B. Coba Login ke Firebase
       await signInWithEmailAndPassword(auth, email, password);
-
       console.log('Login Berhasil!');
-      // Jika berhasil, langsung masuk Home tanpa Alert (UX lebih cepat)
-      navigation.replace('Home');
-    } catch (error: any) {
+
+      // --- PERBAIKAN DI SINI ---
+      // Jangan ke 'Home', tapi ke 'MainApp' (pembungkus Tab Navigator)
+      navigation.replace('MainApp');
+    } catch (error) {
       console.error('Login Error: ', error.code);
       let errorMessage = 'Terjadi kesalahan saat login.';
 
-      // C. Menangani Error Spesifik
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         errorMessage = 'Email atau Password salah. Silakan cek kembali.';
       } else if (error.code === 'auth/invalid-email') {
@@ -71,10 +52,9 @@ const LoginScreens = ({ navigation }: any) => {
         errorMessage = 'Terlalu banyak percobaan gagal. Coba lagi nanti.';
       }
 
-      // Tampilkan Pesan Error
       Alert.alert('Login Gagal', errorMessage);
     } finally {
-      setIsLoading(false); // Stop Loading
+      setIsLoading(false);
     }
   };
 
@@ -90,13 +70,11 @@ const LoginScreens = ({ navigation }: any) => {
             <Text style={styles.title}>Welcome to</Text>
             <Text style={styles.subTitle}>Posify login now!</Text>
 
-            {/* Input Email */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <TextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor="#9CA3AF" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
             </View>
 
-            {/* Input Password */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.passwordContainer}>
@@ -107,25 +85,17 @@ const LoginScreens = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* Remember Me & Forgot Password */}
             <View style={styles.rowBetween}>
               <TouchableOpacity style={styles.rememberRow} onPress={() => setRememberMe(!rememberMe)}>
                 <MaterialCommunityIcons name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={COLORS.textMain} />
                 <Text style={styles.rememberText}>Remember Me</Text>
               </TouchableOpacity>
-
               <TouchableOpacity>
                 <Text style={styles.forgotText}>Forgot Password?</Text>
               </TouchableOpacity>
             </View>
 
-            {/* --- 3. TOMBOL LOGIN UPDATE --- */}
-            <TouchableOpacity
-              style={styles.loginButton}
-              activeOpacity={0.8}
-              onPress={handleLogin} // Panggil fungsi login
-              disabled={isLoading} // Matikan tombol saat loading
-            >
+            <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={handleLogin} disabled={isLoading}>
               {isLoading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.loginButtonText}>Login</Text>}
             </TouchableOpacity>
 
@@ -133,10 +103,10 @@ const LoginScreens = ({ navigation }: any) => {
               <Text style={styles.orText}>Or</Text>
             </View>
 
-            {/* Social Media Icons */}
             <View style={styles.socialContainer}>
+              {/* Icon Social Media (Dummy) */}
               <TouchableOpacity style={styles.socialIcon}>
-                <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} style={{ width: 30, height: 30 }} />
+                <FontAwesome name="google" size={30} color={COLORS.google} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.socialIcon}>
                 <FontAwesome name="apple" size={32} color={COLORS.apple} />
@@ -146,9 +116,9 @@ const LoginScreens = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
 
-            {/* Footer Sign Up */}
             <View style={styles.footerContainer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
+              {/* Navigasi ke Register */}
               <TouchableOpacity onPress={() => navigation.navigate('Register')}>
                 <Text style={styles.signUpText}>Sign Up</Text>
               </TouchableOpacity>
@@ -161,152 +131,31 @@ const LoginScreens = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 10,
-    zIndex: 1,
-  },
-  logo: {
-    width: 160,
-    height: 140,
-    resizeMode: 'contain',
-  },
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 24,
-    paddingVertical: 30,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 20,
-    color: '#333',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  subTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 25,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    color: '#4B5563',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  input: {
-    backgroundColor: COLORS.inputBg,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    color: '#333',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.inputBg,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 14,
-    color: '#333',
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 5,
-  },
-  rememberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rememberText: {
-    marginLeft: 8,
-    color: '#333',
-    fontSize: 13,
-  },
-  forgotText: {
-    color: '#577CFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  loginButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  loginButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  orContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  orText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginBottom: 30,
-  },
-  socialIcon: {
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  footerText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  signUpText: {
-    color: '#1A237E',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingBottom: 30 },
+  headerContainer: { alignItems: 'center', marginTop: 10, marginBottom: 10, zIndex: 1 },
+  logo: { width: 160, height: 140, resizeMode: 'contain' },
+  card: { backgroundColor: COLORS.card, borderRadius: 24, paddingVertical: 30, paddingHorizontal: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  title: { fontSize: 20, color: '#333', textAlign: 'center', fontWeight: '600' },
+  subTitle: { fontSize: 22, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 25 },
+  inputContainer: { marginBottom: 16 },
+  label: { fontSize: 14, color: '#4B5563', marginBottom: 8, fontWeight: '500' },
+  input: { backgroundColor: COLORS.inputBg, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, color: '#333' },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.inputBg, borderRadius: 12, paddingHorizontal: 16 },
+  passwordInput: { flex: 1, paddingVertical: 14, fontSize: 14, color: '#333' },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, marginTop: 5 },
+  rememberRow: { flexDirection: 'row', alignItems: 'center' },
+  rememberText: { marginLeft: 8, color: '#333', fontSize: 13 },
+  forgotText: { color: '#577CFF', fontSize: 13, fontWeight: '600' },
+  loginButton: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 20, elevation: 5 },
+  loginButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  orContainer: { alignItems: 'center', marginBottom: 20 },
+  orText: { color: '#6B7280', fontSize: 14 },
+  socialContainer: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 30 },
+  socialIcon: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
+  footerContainer: { flexDirection: 'row', justifyContent: 'center' },
+  footerText: { color: '#6B7280', fontSize: 14 },
+  signUpText: { color: '#1A237E', fontWeight: 'bold', fontSize: 14 },
 });
 
 export default LoginScreens;

@@ -32,7 +32,7 @@ const SplashScreen = ({ navigation }: any) => {
 
           <Text style={styles.subtitle}>Catat Offline, Pantau Online</Text>
 
-          <Text style={styles.description}>Dirancang khusus untuk mempercepat operasional harian toko Anda. Proses pesanan pelanggan tanpa loading internet yang mengganggu,</Text>
+          <Text style={styles.description}>Dirancang khusus untuk mempercepat operasional harian toko Anda. Proses pesanan pelanggan tanpa loading internet yang mengganggu.serta kemudahan akses berbagai kalangan.</Text>
         </View>
       </View>
 
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  // Sub-judul (Tagline)
+
   subtitle: {
     fontSize: 16,
     fontWeight: 500, // Semi-bold
@@ -104,11 +104,10 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 15,
     color: COLORS.textSub,
-    textAlign: 'center',
-    lineHeight: 20, // Jarak antar baris supaya enak dibaca
-    paddingHorizontal: 10,
+    textAlign: 'justify',
+    lineHeight: 20, 
+    paddingHorizontal: 5,
   },
-  // Container Tombol
   buttonContainer: {
     paddingHorizontal: 75,
     paddingBottom: 25,

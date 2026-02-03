@@ -1,6 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+// Kita pakai initializeAuth agar bisa setting penyimpanan (Persistence)
+import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyA-iytNqYLrAbK0JA_TNnlD4vJFFUxZQbg',
@@ -12,8 +14,15 @@ const firebaseConfig = {
   measurementId: 'G-6WFEGVV6GX',
 };
 
+// 1. Inisialisasi App
 const app = initializeApp(firebaseConfig);
 
-// Export Auth agar bisa dipakai Login & Register
-export const auth = getAuth(app);
+// 2. Inisialisasi Auth Khusus React Native (Android/iOS)
+// Ini kuncinya agar tidak error "getReactNativePersistence is not a function"
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
+
+// 3. Export
+export { auth };
 export const db = getFirestore(app);
