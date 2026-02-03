@@ -1,99 +1,157 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, FlatList, TouchableOpacity, Dimensions, StatusBar, SafeAreaView } from 'react-native';
-import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
-
-// --- KONFIGURASI WARNA & GAMBAR ---
+// --- KONFIGURASI WARNA (Sesuai Screenshot) ---
 const COLORS = {
-  primary: '#1A237E', // Biru Tua (Header & Icon Aktif)
-  accent: '#00E676', // Hijau Terang (FAB & Icon Stats)
-  background: '#FFFFFF', // Putih
-  navBackground: '#C5CAE9', // Ungu Muda (Background Navbar)
-  textDark: '#333333',
-  cardShadow: '#B0B0B0',
+  primary: '#1A237E', // Biru Tua (Header Card & Text)
+  background: '#FFFFFF', // Background Putih
+  cardBg: '#DDE1F5', // Background Item List (Lavender Pudar)
+  success: '#00C853', // Hijau (Berhasil)
+  danger: '#FF5252', // Merah (Gagal)
+  textMain: '#000000', // Hitam untuk Judul Item
+  textGrey: '#757575', // Abu-abu untuk Jam
+  white: '#FFFFFF',
+  bottomNavBg: '#DDE1F5', // Background Navigasi Bawah
 };
 
-// Dummy Data untuk List Makanan
-const DATA = [
-  { id: '1', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' }, // Gambar Seblak/Sup
-  { id: '2', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
-  { id: '3', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
-  { id: '4', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
-  { id: '5', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
+// --- DUMMY DATA TRANSAKSI ---
+const TRANSACTIONS = [
+  {
+    id: '1',
+    name: 'Jenis Transaksi/nama barang',
+    time: '14:30',
+    amount: 'Rp 45.000',
+    status: 'success', // success atau failed
+  },
+  {
+    id: '2',
+    name: 'Jenis Transaksi/nama barang',
+    time: '14:30',
+    amount: 'Rp 45.000',
+    status: 'failed',
+  },
+  {
+    id: '3',
+    name: 'Jenis Transaksi/nama barang',
+    time: '14:30',
+    amount: 'Rp 45.000',
+    status: 'success',
+  },
+  {
+    id: '4',
+    name: 'Jenis Transaksi/nama barang',
+    time: '14:30',
+    amount: 'Rp 45.000',
+    status: 'success',
+  },
+  {
+    id: '5',
+    name: 'Jenis Transaksi/nama barang',
+    time: '12:15',
+    amount: 'Rp 120.000',
+    status: 'success',
+  },
 ];
 
-const InventoryScreen = () => {
-  // Render Item List
-  const renderItem = ({ item }) => (
+const HistoryScreen = ({ navigation }: any) => {
+  // --- RENDER ITEM LIST ---
+  const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemCard}>
-      <Image source={{ uri: item.image }} style={styles.itemImage} />
-      <View style={styles.itemContent}>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemStock}>Stock: {item.stock}</Text>
+      {/* Baris Atas: Nama Barang & Harga */}
+      <View style={styles.rowBetween}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <Text style={styles.itemPrice}>{item.amount}</Text>
+      </View>
+
+      {/* Baris Bawah: Jam & Status */}
+      <View style={[styles.rowBetween, { marginTop: 8 }]}>
+        {/* Jam */}
+        <View style={styles.rowCenter}>
+          <MaterialCommunityIcons name="clock-outline" size={16} color={COLORS.danger} style={{ marginRight: 4 }} />
+          {/* Catatan: Di gambar ikon jam-nya merah muda/oranye, saya pakai danger/red biar mirip */}
+          <Text style={styles.itemTime}>{item.time}</Text>
+        </View>
+
+        {/* Status Badge */}
+        <View style={styles.rowCenter}>
+          {item.status === 'success' ? (
+            <>
+              <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.success} />
+              <Text style={[styles.statusText, { color: COLORS.success }]}> Berhasil</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="close-circle-outline" size={18} color={COLORS.danger} />
+              <Text style={[styles.statusText, { color: COLORS.danger }]}> Gagal</Text>
+            </>
+          )}
+        </View>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
 
-      {/* 1. HEADER BIRU */}
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Posify</Text>
+      {/* 1. HEADER ATAS (Back Button & Title) */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Riwayat Transaksi</Text>
+        <View style={{ width: 40 }} /> {/* Dummy view biar title di tengah */}
       </View>
 
-      {/* 2. STATS CARDS (Overlapping) */}
-      <View style={styles.statsContainer}>
-        {/* Card 1: Total Item */}
-        <View style={styles.statCard}>
-          <View style={styles.iconCircle}>
-            <Feather name="check" size={20} color={COLORS.accent} />
+      {/* 2. SUMMARY CARD (Kotak Biru Besar) */}
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Total Penjualan</Text>
+          <View style={styles.rowSummary}>
+            <Text style={styles.summaryBigNumber}>32</Text>
+            <Text style={styles.summaryText}> Traksaksi</Text>
           </View>
-          <Text style={styles.statLabel}>Total Item</Text>
-        </View>
 
-        {/* Card 2: Low Stock */}
-        <View style={styles.statCard}>
-          <View style={styles.iconCircle}>
-            <Feather name="download" size={20} color={COLORS.accent} />
+          {/* Baris Bawah Card: Tanggal & Download */}
+          <View style={styles.cardFooter}>
+            <View style={styles.dateBadge}>
+              <MaterialCommunityIcons name="calendar-month" size={16} color="#333" />
+              <Text style={styles.dateText}> Hari ini, 03 Feb 2026</Text>
+            </View>
+
+            <TouchableOpacity style={styles.downloadButton}>
+              <MaterialCommunityIcons name="arrow-down" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
           </View>
-          <Text style={styles.statLabel}>Low Stock</Text>
         </View>
       </View>
 
-      {/* 3. LIST ITEMS */}
-      <FlatList data={DATA} renderItem={renderItem} keyExtractor={(item) => item.id} contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false} />
+      {/* 3. LIST TRANSAKSI */}
+      <FlatList data={TRANSACTIONS} renderItem={renderItem} keyExtractor={(item) => item.id} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} />
 
-      {/* 4. FLOATING ACTION BUTTON (FAB) */}
-      <TouchableOpacity style={styles.fab}>
-        <MaterialCommunityIcons name="plus" size={32} color="#FFF" />
-      </TouchableOpacity>
-
-      {/* 5. CUSTOM NAVBAR BOTTOM */}
-      <View style={styles.navbar}>
-        {/* Home */}
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="home" size={30} color="#FFFFFF" />
+      {/* 4. BOTTOM NAVIGATION (Visual Dummy) */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <MaterialCommunityIcons name="home-outline" size={30} color="#FFF" />
         </TouchableOpacity>
-
-        {/* Inventory (Aktif) */}
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="cube" size={32} color={COLORS.primary} />
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Box')}>
+          {' '}
+          {/* Ganti jika ada screen Box */}
+          <MaterialCommunityIcons name="cube-outline" size={30} color="#FFF" />
         </TouchableOpacity>
-
-        {/* Receipt/Orders */}
+        {/* Ikon Aktif (Struk) */}
         <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="receipt" size={30} color="#FFFFFF" />
+          <MaterialCommunityIcons name="receipt" size={30} color={COLORS.primary} />
+          {/* Garis bawah biru tua untuk indikator aktif */}
+          <View style={{ height: 3, width: 20, backgroundColor: COLORS.primary, marginTop: 2 }} />
         </TouchableOpacity>
-
-        {/* User/Profile */}
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="account" size={30} color="#FFFFFF" />
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Settings')}>
+          <MaterialCommunityIcons name="account-outline" size={30} color="#FFF" />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -102,135 +160,160 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
   // --- HEADER ---
-  headerContainer: {
-    backgroundColor: COLORS.primary,
-    height: 140, // Tinggi header biru
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: 50,
-  },
-  headerTitle: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-
-  // --- STATS CARDS ---
-  statsContainer: {
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginTop: -40, // Teknik overlapping (naik ke atas header biru)
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+
+  // --- SUMMARY CARD (BIRU) ---
+  summaryContainer: {
+    paddingHorizontal: 20,
     marginBottom: 20,
   },
-  statCard: {
-    backgroundColor: '#FFF',
-    width: '47%',
-    borderRadius: 15,
-    padding: 15,
-    elevation: 4, // Shadow Android
-    shadowColor: '#000', // Shadow iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  iconCircle: {
-    marginBottom: 8,
-    // Ikon hanya berupa warna hijau tanpa lingkaran background di gambar referensi,
-    // tapi kita beri container agar rapi
-    alignSelf: 'flex-start',
-    borderWidth: 1.5,
-    borderColor: '#E0E0E0',
+  summaryCard: {
+    backgroundColor: COLORS.primary,
     borderRadius: 20,
-    padding: 2,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  statLabel: {
+  summaryLabel: {
+    color: '#FFF',
     fontSize: 14,
+    marginBottom: 5,
+  },
+  rowSummary: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 15,
+  },
+  summaryBigNumber: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  summaryText: {
+    fontSize: 18,
+    color: '#FFF',
     fontWeight: '600',
-    color: '#000',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: 'bold',
+    marginLeft: 5,
+  },
+  downloadButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  // --- LIST ITEMS ---
-  listContainer: {
+  // --- LIST ITEM ---
+  listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100, // Ruang agar item terbawah tidak tertutup Navbar
+    paddingBottom: 100, // Ruang untuk bottom nav
   },
   itemCard: {
-    backgroundColor: '#FFF',
-    flexDirection: 'row',
+    backgroundColor: COLORS.cardBg, // Warna Lavender Pudar
     borderRadius: 15,
+    padding: 15,
     marginBottom: 15,
-    elevation: 3,
+    // Shadow Halus
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    overflow: 'hidden', 
+    elevation: 2,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  itemImage: {
-    width: 90,
-    height: 90,
-    resizeMode: 'cover',
-  },
-  itemContent: {
-    flex: 1,
-    paddingHorizontal: 15,
-    justifyContent: 'center',
-  },
-  itemTitle: {
-    fontSize: 16,
+  itemName: {
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 4,
   },
-  itemStock: {
-    fontSize: 13,
-    color: '#555',
+  itemPrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000',
   },
-
-  // --- FLOATING ACTION BUTTON ---
-  fab: {
-    position: 'absolute',
-    bottom: 100, // Di atas Navbar
-    right: 20,
-    backgroundColor: COLORS.accent,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
+  rowCenter: {
+    flexDirection: 'row',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 10,
+  },
+  itemTime: {
+    fontSize: 12,
+    color: '#555', // Warna abu agak gelap
+    marginLeft: 5,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
 
-  // --- NAVBAR BOTTOM ---
-  navbar: {
+  // --- BOTTOM NAV ---
+  bottomNav: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
-    backgroundColor: COLORS.navBackground, // Warna ungu muda
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    height: 70,
+    backgroundColor: COLORS.bottomNavBg,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingBottom: 10, // Menyesuaikan ikon agar agak ke tengah
-    elevation: 0,
+    elevation: 10,
   },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    height: '100%',
+    width: 60,
   },
 });
 
-export default InventoryScreen;
+export default HistoryScreen;

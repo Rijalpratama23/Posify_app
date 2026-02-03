@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { initDB } from './src/services/localDB';
 
 // --- IMPORT SCREEN ---
 import SplashScreen from './src/screens/SplashScreen';
@@ -21,6 +22,10 @@ const Tab = createBottomTabNavigator();
 
 // --- 1. Konfigurasi Tab (MainApp) ---
 function MainAppTabs() {
+  useEffect(() => {
+    initDB(); // Buat tabel saat aplikasi jalan
+  }, []);
+
   return (
     <Tab.Navigator
       // Hubungkan dengan Custom Navbar

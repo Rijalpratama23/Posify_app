@@ -96,7 +96,7 @@ const HomeScreen = ({ navigation }: any) => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image 
-            source={('../assets/profileanimation.png')} 
+            source={require('../assets/profileanimation.png')} 
             style={styles.avatar} 
           />
           <View>
