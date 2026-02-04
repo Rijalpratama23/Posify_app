@@ -1,236 +1,225 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, FlatList, TouchableOpacity, Dimensions, StatusBar, SafeAreaView } from 'react-native';
-import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
-const { width } = Dimensions.get('window');
+// --- IMPORT DATABASE SQLITE ---
+import { getDrafts, deleteDraft } from '../services/localDB';
 
-// --- KONFIGURASI WARNA & GAMBAR ---
+// WARNA (Style Senada tapi Aksen Oranye untuk Pembeda)
 const COLORS = {
-  primary: '#1A237E', // Biru Tua (Header & Icon Aktif)
-  accent: '#00E676', // Hijau Terang (FAB & Icon Stats)
-  background: '#FFFFFF', // Putih
-  navBackground: '#C5CAE9', // Ungu Muda (Background Navbar)
-  textDark: '#333333',
-  cardShadow: '#B0B0B0',
+  primary: '#1A237E', // Biru Tua (Nav & Header)
+  accent: '#FF9800', // Oranye (Khas Pending/Draft)
+  background: '#FFFFFF',
+  cardBg: '#FFF3E0', // Oranye Muda Pudar (Background Item)
+  danger: '#FF5252',
+  textMain: '#1A237E',
+  textGrey: '#757575',
 };
 
-// Dummy Data untuk List Makanan
-const DATA = [
-  { id: '1', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' }, // Gambar Seblak/Sup
-  { id: '2', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
-  { id: '3', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
-  { id: '4', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
-  { id: '5', title: 'Total Item', stock: 12, image: 'https://img.freepik.com/free-photo/seblak-indonesian-spicy-soup-with-crackers_1150-37735.jpg' },
-];
+const BoxScreen = ({ navigation }: any) => {
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const InventoryScreen = () => {
-  // Render Item List
-  const renderItem = ({ item }) => (
+  // 1. AMBIL DATA DARI SQLITE (READ)
+  const loadDrafts = async () => {
+    setLoading(true);
+    try {
+      const data = await getDrafts();
+      setDrafts(data);
+    } catch (error) {
+      console.error('Gagal load draft:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refresh otomatis saat masuk ke halaman ini
+  useFocusEffect(
+    useCallback(() => {
+      loadDrafts();
+    }, []),
+  );
+
+  // 2. HAPUS DRAFT (DELETE)
+  const handleDelete = (id: number) => {
+    Alert.alert('Hapus Data', 'Yakin ingin menghapus pending order ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Hapus',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteDraft(id);
+          loadDrafts(); // Refresh list setelah hapus
+        },
+      },
+    ]);
+  };
+
+  const formatRupiah = (number: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+  };
+
+  // RENDER ITEM (Desain mirip History tapi nuansa Oranye)
+  const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemCard}>
-      <Image source={{ uri: item.image }} style={styles.itemImage} />
-      <View style={styles.itemContent}>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemStock}>Stock: {item.stock}</Text>
+      {/* Baris 1: Nama Pelanggan & Total */}
+      <View style={styles.rowBetween}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <MaterialCommunityIcons name="account-clock" size={20} color={COLORS.accent} />
+          <Text style={styles.customerName}>{item.customerName}</Text>
+        </View>
+        <Text style={styles.itemPrice}>{formatRupiah(item.totalPrice)}</Text>
+      </View>
+
+      {/* Baris 2: Tanggal & Tombol Aksi */}
+      <View style={[styles.rowBetween, { marginTop: 10 }]}>
+        <Text style={styles.dateText}>{item.date}</Text>
+
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {/* Tombol Hapus */}
+          <TouchableOpacity style={styles.btnDelete} onPress={() => handleDelete(item.id)}>
+            <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* 1. HEADER BIRU */}
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Posify</Text>
-      </View>
-
-      {/* 2. STATS CARDS (Overlapping) */}
-      <View style={styles.statsContainer}>
-        {/* Card 1: Total Item */}
-        <View style={styles.statCard}>
-          <View style={styles.iconCircle}>
-            <Feather name="check" size={20} color={COLORS.accent} />
-          </View>
-          <Text style={styles.statLabel}>Total Item</Text>
-        </View>
-
-        {/* Card 2: Low Stock */}
-        <View style={styles.statCard}>
-          <View style={styles.iconCircle}>
-            <Feather name="download" size={20} color={COLORS.accent} />
-          </View>
-          <Text style={styles.statLabel}>Low Stock</Text>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Pending Orders</Text>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{drafts.length}</Text>
         </View>
       </View>
 
-      {/* 3. LIST ITEMS */}
-      <FlatList data={DATA} renderItem={renderItem} keyExtractor={(item) => item.id} contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false} />
+      {/* SUMMARY INFO (Kuning Oranye) */}
+      <View style={styles.infoContainer}>
+        <View style={styles.infoCard}>
+          <MaterialCommunityIcons name="database-sync" size={24} color={COLORS.accent} />
+          <View style={{ marginLeft: 15, flex: 1 }}>
+            <Text style={styles.infoTitle}>Penyimpanan Lokal (Offline)</Text>
+            <Text style={styles.infoDesc}>Data ini hanya tersimpan di HP ini, belum masuk ke laporan cloud.</Text>
+          </View>
+        </View>
+      </View>
 
-      {/* 4. FLOATING ACTION BUTTON (FAB) */}
-      <TouchableOpacity style={styles.fab}>
-        <MaterialCommunityIcons name="plus" size={32} color="#FFF" />
-      </TouchableOpacity>
+      {/* LIST DRAFTS */}
+      <View style={styles.listContainer}>
+        {loading ? (
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
+        ) : (
+          <FlatList
+            data={drafts}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', marginTop: 80 }}>
+                <MaterialCommunityIcons name="package-variant-closed" size={60} color="#DDD" />
+                <Text style={{ color: '#999', marginTop: 10 }}>Tidak ada pending order</Text>
+              </View>
+            }
+          />
+        )}
+      </View>
 
-      {/* 5. CUSTOM NAVBAR BOTTOM */}
-      <View style={styles.navbar}>
-        {/* Home */}
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="home" size={30} color="#FFFFFF" />
+      {/* BOTTOM NAV */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <MaterialCommunityIcons name="home-outline" size={32} color="#DDE1F5" />
         </TouchableOpacity>
 
-        {/* Inventory (Aktif) */}
+        {/* Nav Aktif (Cube) */}
         <TouchableOpacity style={styles.navItem}>
           <MaterialCommunityIcons name="cube" size={32} color={COLORS.primary} />
+          <View style={{ height: 3, width: 20, backgroundColor: COLORS.primary, marginTop: 2 }} />
         </TouchableOpacity>
 
-        {/* Receipt/Orders */}
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="receipt" size={30} color="#FFFFFF" />
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Draft')}>
+          <MaterialCommunityIcons name="receipt" size={32} color="#DDE1F5" />
         </TouchableOpacity>
-
-        {/* User/Profile */}
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="account" size={30} color="#FFFFFF" />
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Settings')}>
+          <MaterialCommunityIcons name="account-outline" size={32} color="#DDE1F5" />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
 
-  // --- HEADER ---
-  headerContainer: {
-    backgroundColor: COLORS.primary,
-    height: 140, // Tinggi header biru
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: 50,
-  },
-  headerTitle: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-
-  // --- STATS CARDS ---
-  statsContainer: {
+  // Header
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginTop: -40, // Teknik overlapping (naik ke atas header biru)
-    marginBottom: 20,
+    paddingVertical: 15,
   },
-  statCard: {
-    backgroundColor: '#FFF',
-    width: '47%',
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.primary },
+  badge: { backgroundColor: COLORS.accent, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+
+  // Info Card
+  infoContainer: { paddingHorizontal: 20, marginBottom: 15 },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  infoTitle: { fontWeight: 'bold', color: '#F57C00', fontSize: 14 },
+  infoDesc: { color: '#777', fontSize: 12, marginTop: 2 },
+
+  // List
+  listContainer: { flex: 1, paddingHorizontal: 20 },
+  itemCard: {
+    backgroundColor: COLORS.cardBg,
     borderRadius: 15,
     padding: 15,
-    elevation: 4, // Shadow Android
-    shadowColor: '#000', // Shadow iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  iconCircle: {
-    marginBottom: 8,
-    // Ikon hanya berupa warna hijau tanpa lingkaran background di gambar referensi,
-    // tapi kita beri container agar rapi
-    alignSelf: 'flex-start',
-    borderWidth: 1.5,
-    borderColor: '#E0E0E0',
-    borderRadius: 20,
-    padding: 2,
-  },
-  statLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-  },
-
-  // --- LIST ITEMS ---
-  listContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 100, // Ruang agar item terbawah tidak tertutup Navbar
-  },
-  itemCard: {
-    backgroundColor: '#FFF',
-    flexDirection: 'row',
-    borderRadius: 15,
     marginBottom: 15,
-    elevation: 3,
+    borderLeftWidth: 5,
+    borderLeftColor: COLORS.accent, // Aksen garis oranye di kiri
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    overflow: 'hidden',
-    alignItems: 'center',
+    elevation: 2,
   },
-  itemImage: {
-    width: 90,
-    height: 90,
-    resizeMode: 'cover',
-  },
-  itemContent: {
-    flex: 1,
-    paddingHorizontal: 15,
-    justifyContent: 'center',
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
-  itemStock: {
-    fontSize: 13,
-    color: '#555',
-  },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  customerName: { fontSize: 16, fontWeight: 'bold', color: '#333', marginLeft: 8 },
+  itemPrice: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary },
+  dateText: { fontSize: 12, color: '#888' },
 
-  // --- FLOATING ACTION BUTTON ---
-  fab: {
-    position: 'absolute',
-    bottom: 100, // Di atas Navbar
-    right: 20,
-    backgroundColor: COLORS.accent,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 10,
-  },
+  btnDelete: { padding: 8, backgroundColor: '#FFEBEE', borderRadius: 8 },
 
-  // --- NAVBAR BOTTOM ---
-  navbar: {
+  // Nav
+  bottomNav: {
     position: 'absolute',
     bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: COLORS.navBackground, // Warna ungu muda
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    width: '100%',
+    height: 70,
+    backgroundColor: '#DDE1F5',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingBottom: 10, // Menyesuaikan ikon agar agak ke tengah
-    elevation: 0,
+    elevation: 20,
   },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-  },
+  navItem: { alignItems: 'center', justifyContent: 'center' },
 });
 
-export default InventoryScreen;
+export default BoxScreen;

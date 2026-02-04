@@ -1,66 +1,73 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+
+// --- SERVICE (JANGAN DIHAPUS) ---
 import { initDB } from './src/services/localDB';
 
-// --- IMPORT SCREEN ---
+// --- IMPORT SCREENS ---
 import SplashScreen from './src/screens/SplashScreen';
-import LoginScreen from './src/screens/LoginScreens';
+import LoginScreen from './src/screens/LoginScreens'; // Sesuaikan jika nama filenya beda (misal LoginScreen)
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
-import AddReportScreen from './src/screens/ListScreen'; // Halaman "Orders"
-import DraftScreen from './src/screens/BoxScreen'; // Halaman "Inventory"
-import ProfileScreen from './src/screens/SettingScreen'; // Halaman "Profile"
+import BoxScreen from './src/screens/BoxScreen'; // Halaman Pending Order (Offline)
+import ListScreen from './src/screens/ListScreen'; // Halaman Riwayat Transaksi (Online)
+import SettingScreen from './src/screens/SettingScreen'; // Halaman Profile/Settings
 
-// Import Custom Navbar
+// --- IMPORT COMPONENTS ---
 import NavbarBottom from './src/components/NavbarBottom';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// --- 1. Konfigurasi Tab (MainApp) ---
+// --- 1. Konfigurasi Tab Bar (Menu Bawah) ---
 function MainAppTabs() {
+  // Inisialisasi Database SQLite saat Tab Bar dimuat
   useEffect(() => {
-    initDB(); // Buat tabel saat aplikasi jalan
+    const setupDatabase = async () => {
+      await initDB();
+    };
+    setupDatabase();
   }, []);
 
   return (
     <Tab.Navigator
-      // Hubungkan dengan Custom Navbar
+      // Hubungkan dengan Custom Navbar yang sudah kamu buat
       tabBar={(props) => <NavbarBottom {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      {/* 1. Home */}
+      {/* 1. HOME */}
       <Tab.Screen name="Home" component={HomeScreen} />
 
-      {/* 2. Inventory (Kubus) */}
-      <Tab.Screen name="Inventory" component={DraftScreen} />
+      {/* 2. BOX (Pending Order / SQLite) */}
+      {/* PENTING: Namanya harus "Box" agar tombol Kubus di Navbar & Home jalan */}
+      <Tab.Screen name="Box" component={BoxScreen} />
 
-      {/* 3. Orders (Bon/Kertas) */}
-      <Tab.Screen name="Orders" component={AddReportScreen} />
+      {/* 3. DRAFT (Riwayat Transaksi / Firebase) */}
+      {/* PENTING: Namanya harus "Draft" agar tombol Struk di Navbar & Home jalan */}
+      <Tab.Screen name="Draft" component={ListScreen} />
 
-      {/* 4. Profile (User) */}
-      {/* PENTING: Gunakan name="Profile" agar cocok dengan logika di NavbarBottom.js */}
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      {/* 4. SETTINGS (Profile) */}
+      {/* PENTING: Namanya harus "Settings" agar tombol User di Navbar & Home jalan */}
+      <Tab.Screen name="Settings" component={SettingScreen} />
     </Tab.Navigator>
   );
 }
 
-// --- 2. App Utama ---
+// --- 2. App Navigation Utama ---
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Splash">
-        {/* Grup Layar Awal (Tanpa Navbar) */}
-        <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+      <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
+        {/* Grup Autentikasi & Splash */}
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
 
-        {/* Grup Aplikasi Utama (Pakai Navbar) */}
-        {/* User masuk ke sini setelah Login */}
-        <Stack.Screen name="MainApp" component={MainAppTabs} options={{ headerShown: false }} />
+        {/* Grup Aplikasi Utama (Berisi Tab Bar) */}
+        {/* Setelah Login, user dilempar ke 'MainApp' ini */}
+        <Stack.Screen name="MainApp" component={MainAppTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
