@@ -12,10 +12,9 @@ export const saveTransaction = async (cartItems, totalAmount, paymentMethod = 'C
       orderId: `ORD-${Date.now()}`, // ID Unik berdasarkan waktu
       items: cartItems, // Barang yang dibeli
       totalAmount: totalAmount, // Total Harga
-      paymentMethod: paymentMethod, // Tunai/QRIS
-      status: 'success', // Status
-      createdAt: serverTimestamp(), // Waktu server otomatis
-      // Format tanggal cantik: "03 Feb 2026"
+      paymentMethod: paymentMethod, 
+      status: 'success', 
+      createdAt: serverTimestamp(), 
       dateLabel: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
     };
 

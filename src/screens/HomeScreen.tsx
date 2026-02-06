@@ -10,7 +10,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { auth } from '../config/firebase'; 
 import { saveDraft } from '../services/localDB';
 import { saveTransaction } from '../services/transactionService'; 
-import { getProducts, addProduct } from '../services/ProductService'; // Import addProduct
+import { getProducts, addProduct } from '../services/ProductService'; 
 
 const { width } = Dimensions.get('window');
 
@@ -26,7 +26,11 @@ const COLORS = {
   orange: '#FF9800', 
 };
 
-const CATEGORIES = ['Semua', 'Makanan', 'Minuman', 'Snack'];
+// Kategori untuk FILTER (Ada 'Semua')
+const FILTER_CATEGORIES = ['Semua', 'Makanan', 'Minuman', 'Snack'];
+
+// Kategori untuk INPUT DATA (Tidak ada 'Semua', karena produk harus spesifik)
+const INPUT_CATEGORIES = ['Makanan', 'Minuman', 'Snack'];
 
 const HomeScreen = ({ navigation }: any) => {
   const isFocused = useIsFocused();
@@ -45,12 +49,12 @@ const HomeScreen = ({ navigation }: any) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [customerName, setCustomerName] = useState('');
 
-  // --- MODAL TAMBAH PRODUK (BARU) ---
+  // --- MODAL TAMBAH PRODUK ---
   const [addProductModal, setAddProductModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newStock, setNewStock] = useState('');
-  const [newCategory, setNewCategory] = useState('Makanan');
+  const [newCategory, setNewCategory] = useState('Makanan'); // Default
 
   useEffect(() => {
     if (isFocused) fetchData();
@@ -66,9 +70,11 @@ const HomeScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     let result = products;
+    // Filter Kategori
     if (activeCategory !== 'Semua') {
       result = result.filter(item => item.category === activeCategory);
     }
+    // Filter Search
     if (searchQuery) {
       result = result.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
     }
@@ -120,14 +126,13 @@ const HomeScreen = ({ navigation }: any) => {
         return;
     }
     setAddProductModal(false);
-    setIsLoading(true); // Loading sebentar
+    setIsLoading(true);
 
     const res = await addProduct(newName, newPrice, newStock, newCategory);
     if (res.success) {
-        Alert.alert("Sukses", "Produk berhasil ditambahkan ke Menu!");
-        // Reset Form
+        Alert.alert("Sukses", "Produk berhasil ditambahkan!");
         setNewName(''); setNewPrice(''); setNewStock('');
-        fetchData(); // Refresh data biar muncul
+        fetchData();
     } else {
         Alert.alert("Gagal", "Terjadi kesalahan sistem.");
         setIsLoading(false);
@@ -165,7 +170,6 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={styles.subWelcomeText}>Siap berjualan hari ini?</Text>
           </View>
         </View>
-        {/* Tombol Tambah Produk (Ganti ikon awan jadi Plus Kotak) */}
         <TouchableOpacity style={styles.cloudIconContainer} onPress={() => setAddProductModal(true)}>
           <MaterialCommunityIcons name="plus-box" size={28} color="#FFF" />
         </TouchableOpacity>
@@ -177,10 +181,10 @@ const HomeScreen = ({ navigation }: any) => {
         <TextInput placeholder="Cari nama barang..." placeholderTextColor="#9FA8DA" style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
-      {/* CATEGORIES */}
+      {/* CATEGORIES FILTER (HEADER) */}
       <View style={styles.categoryContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {CATEGORIES.map((cat, index) => (
+          {FILTER_CATEGORIES.map((cat, index) => (
             <TouchableOpacity key={index} onPress={() => setActiveCategory(cat)} style={[styles.categoryPill, activeCategory === cat ? styles.catActive : styles.catInactive]}>
               <Text style={[styles.catText, activeCategory === cat ? { color: '#FFF' } : { color: COLORS.textMain }]}>{cat}</Text>
             </TouchableOpacity>
@@ -202,7 +206,6 @@ const HomeScreen = ({ navigation }: any) => {
           ListEmptyComponent={
             <View style={{ alignItems: 'center', marginTop: 50 }}>
               <Text style={{ color: COLORS.textGrey }}>Belum ada produk.</Text>
-              <Text style={{ color: COLORS.textGrey, fontSize: 12 }}>Klik tombol (+) di atas untuk tambah barang.</Text>
             </View>
           }
         />
@@ -246,15 +249,16 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={styles.modalTitle}>Tambah Menu Baru</Text>
             <Text style={styles.modalSubtitle}>Data akan disimpan ke Cloud (Firebase).</Text>
             
-            <TextInput style={styles.inputBox} placeholder="Nama Produk (Misal: Nasi Goreng)" value={newName} onChangeText={setNewName} />
+            <TextInput style={styles.inputBox} placeholder="Nama Produk (Misal: Keripik)" value={newName} onChangeText={setNewName} />
             <View style={{flexDirection:'row', gap: 10}}>
                 <TextInput style={[styles.inputBox, {flex:1}]} placeholder="Harga (Rp)" value={newPrice} onChangeText={setNewPrice} keyboardType="numeric" />
-                <TextInput style={[styles.inputBox, {flex:1}]} placeholder="Stok Awal" value={newStock} onChangeText={setNewStock} keyboardType="numeric" />
+                <TextInput style={[styles.inputBox, {flex:1}]} placeholder="Stok" value={newStock} onChangeText={setNewStock} keyboardType="numeric" />
             </View>
 
-            {/* Pilihan Kategori Sederhana */}
-            <View style={{flexDirection:'row', marginVertical: 10, gap: 5}}>
-                {['Makanan', 'Minuman'].map(c => (
+            {/* PERBAIKAN DI SINI: OPSI KATEGORI SEKARANG LENGKAP */}
+            <Text style={{marginTop:5, marginBottom:5, fontWeight:'bold', color:'#555'}}>Kategori:</Text>
+            <View style={{flexDirection:'row', flexWrap:'wrap', gap: 5}}>
+                {INPUT_CATEGORIES.map(c => (
                     <TouchableOpacity key={c} onPress={()=>setNewCategory(c)} style={[styles.catSmall, newCategory===c ? {backgroundColor: COLORS.primary} : {backgroundColor: '#EEE'}]}>
                         <Text style={{color: newCategory===c?'#FFF':'#333'}}>{c}</Text>
                     </TouchableOpacity>
@@ -316,4 +320,4 @@ const styles = StyleSheet.create({
   catSmall: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
 });
 
-export default HomeScreen;
+export default HomeScreen;  
